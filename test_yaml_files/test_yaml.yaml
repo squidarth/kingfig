@@ -1,0 +1,6 @@
+sids_repo:
+  resource_type: "GithubRepository"
+  name: "rubocop-assist"
+  owner: "squidarth"
+  description: "Hello"
+  homepage_url: "www.squidarth.com"

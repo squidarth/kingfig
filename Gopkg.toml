@@ -24,3 +24,23 @@
 [[constraint]]
   name = "gopkg.in/yaml.v2"
   version = "2.2.8"
+
+[[constraint]]
+  name = "github.com/fatih/structs"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/r3labs/diff"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/shurcooL/githubv4"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/oauth2"

@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	cmd "github.com/squidarth/kingfig/cmd"
+)
+
 
 func main() {
-	fmt.Printf("hello, world\n")
+	cmd.Execute()
 }
