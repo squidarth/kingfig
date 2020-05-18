@@ -15,6 +15,13 @@ type Plugin interface {
 	Update() bool
 }
 
+func (figObject FigObject) ApplyConfig() error {
+	if figObject.GithubRepository != nil {
+		return figObject.GithubRepository.ApplyConfig()
+	}
+	return nil
+}
+
 func (figObject FigObject) GetDiff() []diff.Change {
 	if figObject.GithubRepository != nil {
 		return figObject.GithubRepository.GetDiff()

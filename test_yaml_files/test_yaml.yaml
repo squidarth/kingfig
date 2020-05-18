@@ -2,5 +2,10 @@ sids_repo:
   resource_type: "GithubRepository"
   name: "rubocop-assist"
   owner: "squidarth"
-  description: "Hello"
-  homepage_url: "www.squidarth.com"
+  description:  "Webapp to help write rubocop rules"
+  homepage_url: "https://github.com/squidarth/rubocop-assist"
+  has_projects_enabled: true
+  has_wiki_enabled: true
+  has_issues_enabled: true
+  template: true
+  id: "MDEwOlJlcG9zaXRvcnkxMDA4OTcwNjA="

@@ -94,7 +94,15 @@ var (
 			}
 			for resourceName, config := range fullConfiguration {
 				fmt.Println(displayableChangelog(resourceName, config.GetDiff()))
+			}
 
+			if NoDryRun {
+				for _, config := range fullConfiguration {
+					err := config.ApplyConfig()
+					if err != nil {
+						fmt.Println(err)
+					}
+				}
 			}
 		},
 	}

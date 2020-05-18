@@ -2,10 +2,11 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
 
-	structs "github.com/fatih/structs"
 	diff "github.com/r3labs/diff"
 	githubv4 "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -41,6 +42,7 @@ func GetRepoFromRemote(ownerName string, name string) Repository {
 			Owner              struct {
 				Login string
 			}
+			Id string
 		} `graphql:"repository(owner: $owner, name: $name)"`
 	}
 
@@ -64,7 +66,59 @@ func GetRepoFromRemote(ownerName string, name string) Repository {
 		HomepageUrl:        q.Repository.HomepageUrl,
 		Template:           q.Repository.IsTemplate,
 		Owner:              q.Repository.Owner.Login,
+		Id:                 q.Repository.Id,
 	}
+}
+
+func getGHClient() *githubv4.Client {
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	httpClient := oauth2.NewClient(context.Background(), src)
+	client := githubv4.NewClient(httpClient)
+
+	return client
+}
+
+func (r Repository) ApplyConfig() error {
+	var client = getGHClient()
+	var m struct {
+		UpdateRepository struct {
+			Repository struct {
+				Id string
+			}
+		} `graphql:"updateRepository(input: $input)"`
+	}
+
+	var description = githubv4.String(r.Description)
+
+	var name = githubv4.String(r.Name)
+	var hasIssuesEnabled = githubv4.Boolean(r.HasIssuesEnabled)
+
+	var template = githubv4.Boolean(r.Template)
+
+	var hasWikiEnabled = githubv4.Boolean(r.HasProjectsEnabled)
+	var hasProjectsEnabled = githubv4.Boolean(r.HasIssuesEnabled)
+
+	homepageURI, err := url.Parse(r.HomepageUrl)
+
+	if err != nil {
+		fmt.Println(err)
+		return errors.New("Invalid homepage URL")
+	}
+	var homepageURL = githubv4.URI{URL: homepageURI}
+
+	input := githubv4.UpdateRepositoryInput{
+		Description:        &description,
+		HasIssuesEnabled:   &hasIssuesEnabled,
+		HasWikiEnabled:     &hasWikiEnabled,
+		HomepageURL:        &homepageURL,
+		HasProjectsEnabled: &hasProjectsEnabled,
+		Name:               &name,
+		Template:           &template,
+		RepositoryID:       r.Id,
+	}
+	return client.Mutate(context.Background(), &m, input, nil)
 }
 
 func (r Repository) GetDiff() []diff.Change {
@@ -73,27 +127,4 @@ func (r Repository) GetDiff() []diff.Change {
 	var changelog, _ = diff.Diff(remoteRepo, r)
 
 	return changelog
-}
-
-func (r Repository) GetExistingFromRemote() map[string]interface{} {
-	/* Sample Repository, until
-	 * we have API connection set up
-	 */
-
-	var newRepo = Repository{
-		Description:        "A repo",
-		HasIssuesEnabled:   true,
-		HasProjectsEnabled: true,
-		HasWikiEnabled:     true,
-		Name:               "repo-repo",
-		HomepageUrl:        "www.google.com",
-		Id:                 "123456",
-		Template:           false,
-	}
-
-	return structs.New(newRepo).Map()
-}
-
-func (r Repository) Update() bool {
-	return true
 }
