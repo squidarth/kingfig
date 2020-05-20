@@ -35,46 +35,42 @@ updating Github repositories.
 
 Steps to use this:
 
-1. Make a Github repo to store your `kingfig` configs
-2. Write a YAML file to represent your Github repository that looks something like this:
-
-```yaml
-# A file called # config.yaml
-sids_repo:
-  resource_type: "GithubRepository"
-  name: "rubocop-assist"
-  owner: "squidarth"
-  description:  "Webapp to help write rubocop rules"
-  homepage_url: "https://github.com/squidarth/rubocop-assist"
-  has_projects_enabled: true
-  has_wiki_enabled: true
-  has_issues_enabled: true
-  template: true
-  id: "MDEwOlJlcG9zaXRvcnkxMDA4OTcwNjA="
-```
-3. Generate a Github API Token
-4. Write a YAML file that contains your Github authorization information at the path ~/.kingfig/auth.yaml
+1. Make a folder to store your `kingfig` configs
+2. Generate a Github API Token
+3. Write a YAML file that contains your Github authorization information at the path ~/.kingfig/auth.yaml
 
 ```yaml
 # ~/.kingfig/auth.yaml
 github_api_token: $YOUR_GITHUB_API_TOKEN
 ```
 
-5. In your config directory, run `kingfig apply`
+4. For an existing Github repo you'd like to manage the settings for, run:
 
-This will print out a list of changes that will be applied.
+```
+$ kingfig new -o sids_repo.yaml --resource-name sids_repo GithubRepository squidarth rubocop-assist
+```
+
+In this case, my repo is `squidarth/rubocop-assist`.
+
+5. This will generate a file that looks like this:
+
+```yaml
+# sids_repo.yaml
+sids_repo:
+    description: Webapp to help write rubocop rules well
+    owner: squidarth
+    has_issues_enabled: true
+    has_projects_enabled: true
+    has_wiki_enabled: true
+    homepage_url: https://github.com/squidarth/rubocop-assist
+    name: rubocop-assist
+    id: MDEwOlJlcG9zaXRvcnkxMDA4OTcwNjA=
+    template: true
+```
+
+Go ahead and modify, say, the `description` field in this file.
 
 6. Run `kingfig apply --no-dry-run` to actually apply the changes to your Github repo
-
-You can find the ID of your Github repository using the [Github GraphQL Explorer](https://developer.github.com/v4/explorer/), and a query like:
-
-```graphql
-query{
-  repository(name:"rubocop-assist", owner:"squidarth"){
-    id
-  }
-}
-```
 
 ## Current Integrations
 
@@ -82,8 +78,6 @@ query{
 
 ## Coming up soon
 
-* A `kingfig new` command that generates a yaml configuration from
-an existing web service, to make bootstrapping your `kingfig` configurations easier.
 * Have some automated tool for writing the authorization file (there are too many steps to getting set up right now)
 
 ## How you can help
