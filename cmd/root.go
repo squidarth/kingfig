@@ -10,9 +10,29 @@ import (
 	"github.com/r3labs/diff"
 	"github.com/spf13/cobra"
 	"github.com/squidarth/kingfig/auth"
+	gh "github.com/squidarth/kingfig/github"
 	plug "github.com/squidarth/kingfig/plugin"
 	"gopkg.in/yaml.v3"
 )
+
+func getAuthSettings() (*auth.AuthSettings, error) {
+	var authFileBytes, err = ioutil.ReadFile(AuthorizationDetailsFile)
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	var authSettings auth.AuthSettings
+	err = yaml.Unmarshal(authFileBytes, &authSettings)
+
+	if err != nil {
+		fmt.Println("Error reading authorization file")
+
+		return nil, err
+	}
+	return &authSettings, nil
+}
 
 func getConfigurationFiles(rootDir string) []string {
 	var files []string
@@ -65,6 +85,8 @@ func displayableChangelog(resourceName string, changelog []diff.Change) string {
 
 var (
 	// Used for flags.
+	OutputFilePath           string
+	ResourceName             string
 	ConfigurationDir         string
 	NoDryRun                 bool
 	AuthorizationDetailsFile string
@@ -74,28 +96,44 @@ var (
 		Long:  `KingFig is a program for declaratively specifying your settings.`,
 	}
 
+	newCmd = &cobra.Command{
+		Use:   "new",
+		Short: "Generates a new kingfig yaml file from an existing remote resource",
+		Long:  "Generates a new kingfig yaml file from an existing remote resource",
+		Run: func(cmd *cobra.Command, args []string) {
+			resourceType := args[0]
+
+			var authSettings, _ = getAuthSettings()
+			if resourceType == "GithubRepository" {
+				fmt.Println("Generating new Github Repository config...")
+
+				repoOwner := args[1]
+				repoName := args[2]
+
+				var repo = gh.GetRepoFromRemote(repoOwner, repoName, *authSettings)
+
+				var newResourceMap = make(map[string]gh.Repository)
+				newResourceMap[ResourceName] = repo
+
+				var bytes, _ = yaml.Marshal(newResourceMap)
+
+				ioutil.WriteFile(OutputFilePath, bytes, 0644)
+
+				fmt.Println("New config written to: " + OutputFilePath)
+			} else {
+				fmt.Print("Resource type unknown")
+			}
+		},
+	}
+
 	applyCmd = &cobra.Command{
 		Use:   "apply",
 		Short: `Apply your local changes to the remote server.`,
 		Long:  `Apply your local changes to the remote server.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var files = getConfigurationFiles(ConfigurationDir)
-			var authFileBytes, err = ioutil.ReadFile(AuthorizationDetailsFile)
 
-			if err != nil {
-				fmt.Println(err)
-				fmt.Println("Error opening authorization file")
-				return
-			}
-
-			var authSettings auth.AuthSettings
-			err = yaml.Unmarshal(authFileBytes, &authSettings)
-
-			if err != nil {
-				fmt.Println("Error reading authorization file")
-
-				return
-			}
+			var authSettings, _ = getAuthSettings()
 
 			var fullConfiguration = make(map[string]plug.FigObject)
 
@@ -111,7 +149,7 @@ var (
 				fmt.Println("Will apply the following changes:")
 			}
 			for resourceName, config := range fullConfiguration {
-				var changeLogDisplay = displayableChangelog(resourceName, config.GetDiff(authSettings))
+				var changeLogDisplay = displayableChangelog(resourceName, config.GetDiff(*authSettings))
 
 				if changeLogDisplay != "" {
 					fmt.Println(resourceName + ":")
@@ -121,7 +159,7 @@ var (
 
 			if NoDryRun {
 				for _, config := range fullConfiguration {
-					err := config.ApplyConfig(authSettings)
+					err := config.ApplyConfig(*authSettings)
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -133,12 +171,22 @@ var (
 
 func init() {
 	var homeDir, _ = os.UserHomeDir()
+
 	applyCmd.Flags().BoolVarP(&NoDryRun, "no-dry-run", "d", false, "Applies the configuration in production")
 
 	applyCmd.Flags().StringVarP(&ConfigurationDir, "configuration-dir", "c", ".", "Directory to look for config files")
+
+	newCmd.Flags().StringVarP(&OutputFilePath, "output-file-path", "o", "", "File where you'd like the new configuration to go.")
+	newCmd.MarkFlagRequired("output-file-path")
+
+	newCmd.Flags().StringVarP(&ResourceName, "resource-name", "r", "", "Key under which resource should be stored.")
+
+	newCmd.MarkFlagRequired("resource-name")
+
 	rootCmd.PersistentFlags().StringVarP(&AuthorizationDetailsFile, "authorization", "a", fmt.Sprintf("%s/.kingfig/auth.yaml", homeDir), "Location of authorization details file.")
 
 	rootCmd.AddCommand(applyCmd)
+	rootCmd.AddCommand(newCmd)
 }
 
 func Execute() error {
