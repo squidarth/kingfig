@@ -9,6 +9,7 @@ import (
 
 	"github.com/r3labs/diff"
 	"github.com/spf13/cobra"
+	"github.com/squidarth/kingfig/auth"
 	plug "github.com/squidarth/kingfig/plugin"
 	"gopkg.in/yaml.v3"
 )
@@ -43,8 +44,6 @@ func displayableChangelog(resourceName string, changelog []diff.Change) string {
 	var finalString string
 	finalString = ""
 
-	finalString += fmt.Sprintf("%s:\n", resourceName)
-
 	for _, change := range changelog {
 
 		switch change.Type {
@@ -64,9 +63,10 @@ func displayableChangelog(resourceName string, changelog []diff.Change) string {
 
 var (
 	// Used for flags.
-	ConfigurationDir string
-	NoDryRun         bool
-	rootCmd          = &cobra.Command{
+	ConfigurationDir         string
+	NoDryRun                 bool
+	AuthorizationDetailsFile string
+	rootCmd                  = &cobra.Command{
 		Use:   "kingfig",
 		Short: "CLI for applying setting changes.",
 		Long:  `KingFig is a program for declaratively specifying your settings.`,
@@ -78,6 +78,22 @@ var (
 		Long:  `Apply your local changes to the remote server.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var files = getConfigurationFiles(ConfigurationDir)
+			var authFileBytes, err = ioutil.ReadFile(AuthorizationDetailsFile)
+
+			if err != nil {
+				fmt.Println(err)
+				fmt.Println("Error opening authorization file")
+				return
+			}
+
+			var authSettings auth.AuthSettings
+			err = yaml.Unmarshal(authFileBytes, &authSettings)
+
+			if err != nil {
+				fmt.Println("Error reading authorization file")
+
+				return
+			}
 
 			var fullConfiguration = make(map[string]plug.FigObject)
 
@@ -93,12 +109,17 @@ var (
 				fmt.Println("Will apply the following changes:")
 			}
 			for resourceName, config := range fullConfiguration {
-				fmt.Println(displayableChangelog(resourceName, config.GetDiff()))
+				var changeLogDisplay = displayableChangelog(resourceName, config.GetDiff(authSettings))
+
+				if changeLogDisplay != "" {
+					fmt.Println(resourceName + ":")
+					fmt.Println(changeLogDisplay)
+				}
 			}
 
 			if NoDryRun {
 				for _, config := range fullConfiguration {
-					err := config.ApplyConfig()
+					err := config.ApplyConfig(authSettings)
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -109,9 +130,11 @@ var (
 )
 
 func init() {
+	var homeDir, _ = os.UserHomeDir()
 	applyCmd.Flags().BoolVarP(&NoDryRun, "no-dry-run", "d", false, "Applies the configuration in production")
 
 	applyCmd.Flags().StringVarP(&ConfigurationDir, "configuration-dir", "c", ".", "Directory to look for config files")
+	rootCmd.PersistentFlags().StringVarP(&AuthorizationDetailsFile, "authorization", "a", fmt.Sprintf("%s/.kingfig/auth.yaml", homeDir), "Location of authorization details file.")
 
 	rootCmd.AddCommand(applyCmd)
 }

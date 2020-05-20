@@ -2,6 +2,7 @@ package plugin
 
 import (
 	diff "github.com/r3labs/diff"
+	"github.com/squidarth/kingfig/auth"
 	gh "github.com/squidarth/kingfig/github"
 )
 
@@ -15,16 +16,16 @@ type Plugin interface {
 	Update() bool
 }
 
-func (figObject FigObject) ApplyConfig() error {
+func (figObject FigObject) ApplyConfig(authSettings auth.AuthSettings) error {
 	if figObject.GithubRepository != nil {
-		return figObject.GithubRepository.ApplyConfig()
+		return figObject.GithubRepository.ApplyConfig(authSettings)
 	}
 	return nil
 }
 
-func (figObject FigObject) GetDiff() []diff.Change {
+func (figObject FigObject) GetDiff(authSettings auth.AuthSettings) []diff.Change {
 	if figObject.GithubRepository != nil {
-		return figObject.GithubRepository.GetDiff()
+		return figObject.GithubRepository.GetDiff(authSettings)
 	}
 	return nil
 }

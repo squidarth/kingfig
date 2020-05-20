@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 
 	diff "github.com/r3labs/diff"
+
 	githubv4 "github.com/shurcooL/githubv4"
+	auth "github.com/squidarth/kingfig/auth"
 	"golang.org/x/oauth2"
 )
 
@@ -24,12 +25,9 @@ type Repository struct {
 	Template           bool   `yaml:"template" diff:"template"`
 }
 
-func GetRepoFromRemote(ownerName string, name string) Repository {
-	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
-	)
-	httpClient := oauth2.NewClient(context.Background(), src)
-	client := githubv4.NewClient(httpClient)
+func GetRepoFromRemote(ownerName string, name string, authSettings auth.AuthSettings) Repository {
+	client := getGHClient(authSettings)
+
 	var q struct {
 		Repository struct {
 			Description        string
@@ -70,9 +68,9 @@ func GetRepoFromRemote(ownerName string, name string) Repository {
 	}
 }
 
-func getGHClient() *githubv4.Client {
+func getGHClient(authSettings auth.AuthSettings) *githubv4.Client {
 	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		&oauth2.Token{AccessToken: authSettings.GithubApiToken},
 	)
 	httpClient := oauth2.NewClient(context.Background(), src)
 	client := githubv4.NewClient(httpClient)
@@ -80,8 +78,8 @@ func getGHClient() *githubv4.Client {
 	return client
 }
 
-func (r Repository) ApplyConfig() error {
-	var client = getGHClient()
+func (r Repository) ApplyConfig(authSettings auth.AuthSettings) error {
+	var client = getGHClient(authSettings)
 	var m struct {
 		UpdateRepository struct {
 			Repository struct {
@@ -121,8 +119,8 @@ func (r Repository) ApplyConfig() error {
 	return client.Mutate(context.Background(), &m, input, nil)
 }
 
-func (r Repository) GetDiff() []diff.Change {
-	var remoteRepo = GetRepoFromRemote(r.Owner, r.Name)
+func (r Repository) GetDiff(authSettings auth.AuthSettings) []diff.Change {
+	var remoteRepo = GetRepoFromRemote(r.Owner, r.Name, authSettings)
 
 	var changelog, _ = diff.Diff(remoteRepo, r)
 
