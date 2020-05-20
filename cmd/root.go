@@ -48,8 +48,10 @@ func displayableChangelog(resourceName string, changelog []diff.Change) string {
 
 		switch change.Type {
 		case "update":
-			finalString += "+" + strings.Join(change.Path, ".") + ": " + fmt.Sprintf("%v", change.To) + "\n"
-			finalString += "-" + strings.Join(change.Path, ".") + ": " + fmt.Sprintf("%v", change.From)
+			finalString += "\033[1;32m" + "+" + strings.Join(change.Path, ".") + ": " + fmt.Sprintf("%v", change.To) + "\n" + "\033[1;0m"
+
+			finalString += "\033[1;31m" + "-" + strings.Join(change.Path, ".") + ": " + fmt.Sprintf("%v", change.From)
+
 		case "delete":
 			finalString += "-" + strings.Join(change.Path, ".") + ": " + fmt.Sprintf("%v", change.From)
 		case "create":
