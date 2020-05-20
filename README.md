@@ -12,6 +12,8 @@ features.
 In its current form, it only supports updating Github repositories, but the idea is that it will support a plugin system
 that makes supporting other web services really easy to do.
 
+![kingfig-demo](https://user-images.githubusercontent.com/850115/82394624-871d6f80-9a17-11ea-9ac1-982cccfb68cc.png)
+
 This was inspired by tools like [Terraform](https://www.terraform.io/) and [Ansible](https://www.ansible.com/). 
 
 ## Installation
